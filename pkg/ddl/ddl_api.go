@@ -155,6 +155,13 @@ func (d *ddl) CreateSchema(ctx sessionctx.Context, stmt *ast.CreateDatabaseStmt)
 		if len(coll) != 0 {
 			charsetOpt.Col = coll
 		}
+		coll, err = getDefaultCollationForUTF8(ctx.GetSessionVars(), charsetOpt.Chs)
+		if err != nil {
+			return err
+		}
+		if len(coll) != 0 {
+			charsetOpt.Col = coll
+		}
 	}
 	dbInfo := &model.DBInfo{Name: stmt.Name}
 	chs, coll, err := ResolveCharsetCollation(ctx.GetSessionVars(), charsetOpt)
@@ -822,9 +829,28 @@ func getDefaultCollationForUTF8MB4(sessVars *variable.SessionVars, cs string) (s
 	return defaultCollation, nil
 }
 
+func getDefaultCollationForUTF8(sessVars *variable.SessionVars, cs string) (string, error) {
+	if sessVars == nil || cs != charset.CharsetUTF8 {
+		return "", nil
+	}
+	defaultCollation, err := sessVars.GetSessionOrGlobalSystemVar(context.Background(), variable.DefaultCollationForUTF8)
+	if err != nil {
+		return "", err
+	}
+	return defaultCollation, nil
+}
+
 // GetDefaultCollation returns the default collation for charset and handle the default collation for UTF8MB4.
 func GetDefaultCollation(sessVars *variable.SessionVars, cs string) (string, error) {
 	coll, err := getDefaultCollationForUTF8MB4(sessVars, cs)
+	if err != nil {
+		return "", errors.Trace(err)
+	}
+	if coll != "" {
+		return coll, nil
+	}
+
+	coll, err = getDefaultCollationForUTF8(sessVars, cs)
 	if err != nil {
 		return "", errors.Trace(err)
 	}
@@ -869,6 +895,13 @@ func ResolveCharsetCollation(sessVars *variable.SessionVars, charsetOpts ...ast.
 	}
 	if utf8mb4Coll != "" {
 		return chs, utf8mb4Coll, nil
+	}
+	utf8Coll, err := getDefaultCollationForUTF8(sessVars, chs)
+	if err != nil {
+		return "", "", errors.Trace(err)
+	}
+	if utf8Coll != "" {
+		return chs, utf8Coll, nil
 	}
 	return chs, coll, nil
 }
@@ -3545,10 +3578,20 @@ func GetCharsetAndCollateInTableOption(sessVars *variable.SessionVars, startIdx 
 				if err != nil {
 					return "", "", errors.Trace(err)
 				}
-				if len(defaultColl) == 0 {
-					coll = info.DefaultCollation
-				} else {
+				if len(defaultColl) != 0 {
 					coll = defaultColl
+				}
+
+				defaultColl, err = getDefaultCollationForUTF8(sessVars, chs)
+				if err != nil {
+					return "", "", errors.Trace(err)
+				}
+				if len(defaultColl) != 0 {
+					coll = defaultColl
+				}
+
+				if len(coll) == 0 {
+					coll = info.DefaultCollation
 				}
 			}
 		case ast.TableOptionCollate:

@@ -853,6 +853,13 @@ func (e *ShowExec) fetchShowCharset() error {
 				return err
 			}
 		}
+		if desc.Name == charset.CharsetUTF8 {
+			var err error
+			defaultCollation, err = sessVars.GetSessionOrGlobalSystemVar(context.Background(), variable.DefaultCollationForUTF8)
+			if err != nil {
+				return err
+			}
+		}
 		e.appendRow([]interface{}{
 			desc.Name,
 			desc.Desc,

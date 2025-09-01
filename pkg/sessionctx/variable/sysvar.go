@@ -1482,6 +1482,16 @@ var defaultSysVars = []*SysVar{
 		s.DefaultCollationForUTF8MB4 = val
 		return nil
 	}},
+	{Scope: ScopeGlobal | ScopeSession, Name: DefaultCollationForUTF8, Value: mysql.UTF8DefaultCollation, Validation: func(vars *SessionVars, normalizedValue string, originalValue string, scope ScopeFlag) (string, error) {
+		coll, err := checkDefaultCollationForUTF8(vars, normalizedValue, originalValue, scope)
+		if err == nil {
+			vars.StmtCtx.AppendWarning(ErrWarnDeprecatedSyntaxNoReplacement.FastGenByArgs(DefaultCollationForUTF8))
+		}
+		return coll, err
+	}, SetSession: func(s *SessionVars, val string) error {
+		s.DefaultCollationForUTF8 = val
+		return nil
+	}},
 	{Scope: ScopeGlobal | ScopeSession, Name: SQLLogBin, Value: On, Type: TypeBool},
 	{Scope: ScopeGlobal | ScopeSession, Name: TimeZone, Value: "SYSTEM", IsHintUpdatableVerfied: true, Validation: func(varErrFunctionsNoopImpls *SessionVars, normalizedValue string, originalValue string, scope ScopeFlag) (string, error) {
 		if strings.EqualFold(normalizedValue, "SYSTEM") {
@@ -3247,6 +3257,8 @@ const (
 	CollationServer = "collation_server"
 	// DefaultCollationForUTF8MB4 is the name of 'default_collation_for_utf8mb4' variable.
 	DefaultCollationForUTF8MB4 = "default_collation_for_utf8mb4"
+	// DefaultCollationForUTF8 is the name of 'default_collation_for_utf8' variable.
+	DefaultCollationForUTF8 = "default_collation_for_utf8"
 	// NetWriteTimeout is the name of 'net_write_timeout' variable.
 	NetWriteTimeout = "net_write_timeout"
 	// ThreadPoolSize is the name of 'thread_pool_size' variable.
