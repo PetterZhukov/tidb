@@ -1214,6 +1214,9 @@ func TestShowForNewCollations(t *testing.T) {
 	// update default_collation_for_utf8mb4
 	tk.MustExec("set @@session.default_collation_for_utf8mb4='utf8mb4_0900_ai_ci';")
 	tk.MustQuery("show variables like 'default_collation_for_utf8mb4';").Check(testkit.Rows("default_collation_for_utf8mb4 utf8mb4_0900_ai_ci"))
+	// update default_collation_for_utf8
+	tk.MustExec("set @@session.default_collation_for_utf8='utf8mb4_0900_ai_ci';")
+	tk.MustQuery("show variables like 'default_collation_for_utf8';").Check(testkit.Rows("default_collation_for_utf8 utf8_unicode_ci"))
 	expectRows1 := testkit.Rows(
 		"ascii_bin ascii 65 Yes Yes 1",
 		"binary binary 63 Yes Yes 1",

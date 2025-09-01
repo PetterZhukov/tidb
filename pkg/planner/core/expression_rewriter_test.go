@@ -421,3 +421,23 @@ func TestDefaultCollationForUTF8MB4(t *testing.T) {
 	tk.MustQuery("select collation(_utf8mb4'@a')").Check(testkit.Rows("utf8mb4_0900_ai_ci"))
 	tk.MustQuery("select collation(_utf8mb4'@a' collate utf8mb4_general_ci);").Check(testkit.Rows("utf8mb4_general_ci"))
 }
+
+func TestDefaultCollationForUTF8(t *testing.T) {
+	store := testkit.CreateMockStore(t)
+	tk := testkit.NewTestKit(t, store)
+	tk.MustExec("use test;")
+	tk.MustExec(`set @a = 'xx'`)
+	// utf8_bin
+	tk.MustQuery("select * from information_schema.COLLATIONS where IS_DEFAULT='Yes' and CHARACTER_SET_NAME='utf8'").Check(testkit.Rows("utf8_bin utf8 83 Yes Yes 1"))
+	tk.MustQuery("select collation(_utf8'12345')").Check(testkit.Rows("utf8_bin"))
+	tk.MustQuery("select collation(_utf8'xxx' collate utf8_general_ci);").Check(testkit.Rows("utf8_general_ci"))
+	tk.MustQuery("select collation(_utf8'@a')").Check(testkit.Rows("utf8_bin"))
+	tk.MustQuery("select collation(_utf8'@a' collate utf8_general_ci);").Check(testkit.Rows("utf8_general_ci"))
+	// utf8_unicode_ci
+	tk.MustExec("set @@session.default_collation_for_utf8='utf8_unicode_ci'")
+	tk.MustQuery("select * from information_schema.COLLATIONS where IS_DEFAULT='Yes' and CHARACTER_SET_NAME='utf8'").Check(testkit.Rows("utf8_bin utf8 83 Yes Yes 1"))
+	tk.MustQuery("select collation(_utf8'12345')").Check(testkit.Rows("utf8_unicode_ci"))
+	tk.MustQuery("select collation(_utf8'12345' collate utf8_general_ci);").Check(testkit.Rows("utf8_general_ci"))
+	tk.MustQuery("select collation(_utf8'@a')").Check(testkit.Rows("utf8_unicode_ci"))
+	tk.MustQuery("select collation(_utf8'@a' collate utf8_general_ci);").Check(testkit.Rows("utf8_general_ci"))
+}
